@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Smart AI Chat</title>
+</head>
+<body>
+  <h1>Ask Anything</h1>
+  <input type="text" id="question" placeholder="Type your question" />
+  <button onclick="askAI()">Ask</button>
+  <pre id="response"></pre>
+
+  <script>
+    async function askAI() {
+      const msg = document.getElementById("question").value;
+      const responseBox = document.getElementById("response");
+
+      try {
+        const res = await fetch("https://your-backend.onrender.com/ask", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message: msg })
+        });
+
+        const data = await res.json();
+        responseBox.innerText = data.content;
+      } catch (err) {
+        responseBox.innerText = "You're offline or server is down.";
+      }
+    }
+  </script>
+</body>
+</html>

@@ -3,21 +3,67 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Friday - Your AI Assistant</title>
-  <link rel="stylesheet" href="style.css" />
+  <title>Friday AI Assistant</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      background: #0f172a;
+      color: white;
+      margin: 0;
+      padding: 20px;
+    }
+    h1 {
+      color: #38bdf8;
+    }
+    #response {
+      margin-top: 20px;
+      padding: 10px;
+      background: #1e293b;
+      border-radius: 5px;
+    }
+    input, button {
+      padding: 10px;
+      font-size: 16px;
+    }
+    button {
+      background: #38bdf8;
+      border: none;
+      color: #000;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #0ea5e9;
+    }
+  </style>
 </head>
 <body>
-  <div class="container">
-    <h1>🤖 Friday Assistant</h1>
-    <div class="chat-box" id="chat-box">
-      <div class="bot">Hi, I'm Friday! Ask me anything.</div>
-    </div>
-    <div class="input-area">
-      <input type="text" id="user-input" placeholder="Type your message..." />
-      <button onclick="sendMessage()">Send</button>
-    </div>
-  </div>
+  <h1>Hi, I'm Friday! Ask me anything.</h1>
+  <input type="text" id="userInput" placeholder="Type your question here..." />
+  <button onclick="askFriday()">Ask</button>
+  <div id="response"></div>
 
-  <script src="script.js"></script>
+  <script>
+    async function askFriday() {
+      const input = document.getElementById("userInput").value;
+      const resDiv = document.getElementById("response");
+
+      resDiv.innerHTML = "⏳ Thinking...";
+
+      try {
+        const res = await fetch("https://friday-backend-p9dp.onrender.com/ask", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ message: input }),
+        });
+
+        const data = await res.json();
+        resDiv.innerHTML = data.content;
+      } catch (error) {
+        resDiv.innerHTML = "⚠️ Error contacting Friday.";
+      }
+    }
+  </script>
 </body>
 </html>

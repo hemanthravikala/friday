@@ -1,91 +1,147 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Friday AI Assistant</title>
+  <title>Friday – AI Assistant</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <style>
     body {
-      background: #0f172a;
-      color: white;
-      font-family: Arial, sans-serif;
+      background: #1e1e2f;
+      color: #ffffff;
+      font-family: 'Segoe UI', sans-serif;
       display: flex;
-      flex-direction: column;
+      justify-content: center;
       align-items: center;
-      padding: 40px;
+      height: 100vh;
+      margin: 0;
+    }
+    #app {
+      width: 100%;
+      max-width: 700px;
+      background: #2a2a3d;
+      padding: 20px;
+      border-radius: 12px;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.4);
     }
     h1 {
       margin-bottom: 20px;
-      color: #38bdf8;
+      color: #00ffd9;
+      font-size: 24px;
     }
-    #responseBox {
-      width: 100%;
-      max-width: 600px;
-      background: #1e293b;
-      padding: 20px;
+    .friday {
+      color: #ff77ff;
+    }
+    #chat-box {
+      max-height: 400px;
+      overflow-y: auto;
+      margin-bottom: 20px;
+      padding-right: 10px;
+    }
+    .message {
+      background: #3b3b55;
+      margin: 10px 0;
+      padding: 12px 15px;
       border-radius: 10px;
-      margin-top: 20px;
-      white-space: pre-wrap;
-      min-height: 100px;
+      white-space: pre-line;
     }
-    input, button {
+    .message.user {
+      background: #00ffc3;
+      color: #000;
+      text-align: right;
+    }
+    form {
+      display: flex;
+      gap: 10px;
+    }
+    input[type="text"] {
+      flex: 1;
       padding: 10px;
-      font-size: 1rem;
+      border-radius: 8px;
       border: none;
-      outline: none;
-      border-radius: 5px;
-    }
-    #promptInput {
-      width: 70%;
-      margin-right: 10px;
+      font-size: 16px;
     }
     button {
-      background: #38bdf8;
-      color: black;
+      background: #00ffd9;
+      border: none;
+      padding: 10px 16px;
+      border-radius: 8px;
       cursor: pointer;
+      font-size: 16px;
     }
-    button:hover {
-      background: #0ea5e9;
+    h3 {
+      margin: 10px 0 5px;
+      color: #ffccff;
     }
-    .footer {
-      margin-top: 40px;
-      font-size: 0.8rem;
-      color: #94a3b8;
+    p {
+      margin: 5px 0;
     }
   </style>
 </head>
 <body>
-  <h1>Hi, I'm Friday! Ask me anything.</h1>
-  <div>
-    <input id="promptInput" placeholder="Ask a question..." />
-    <button onclick="sendPrompt()">Ask</button>
+  <div id="app">
+    <h1>👋 Hi, I'm <span class="friday">Friday</span></h1>
+    <div id="chat-box"></div>
+    <form id="ask-form">
+      <input type="text" id="user-input" placeholder="Ask me anything..." autocomplete="off" required />
+      <button type="submit">Send</button>
+    </form>
   </div>
-  <div id="responseBox">🧠 Waiting for your question...</div>
-  <div class="footer">Powered by OpenAI & DuckDuckGo | Built by Hemanth</div>
 
   <script>
-    async function sendPrompt() {
-      const prompt = document.getElementById("promptInput").value.trim();
-      const responseBox = document.getElementById("responseBox");
-      if (!prompt) return;
+    document.getElementById("ask-form").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const input = document.getElementById("user-input");
+      const question = input.value.trim();
+      input.value = "";
+      if (!question) return;
 
-      responseBox.innerText = "⏳ Thinking...";
+      addMessage(question, "user");
+      addMessage("⌛ Thinking...", "assistant");
 
       try {
-        const res = await fetch("https://your-backend.onrender.com/ask", {
+        const response = await fetch("https://friday-backend-hemanth.onrender.com/ask", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ prompt }),
+          body: JSON.stringify({ question })
         });
 
-        if (!res.ok) throw new Error("⚠️ Server error.");
-
-        const data = await res.json();
-        responseBox.innerText = data.response || "⚠️ No answer received.";
-      } catch (error) {
-        console.error(error);
-        responseBox.innerText = "⚠️ Error contacting Friday.";
+        const data = await response.json();
+        const enhanced = enhanceText(data.answer || "⚠️ Error: No response from Friday.");
+        updateLastAssistantMessage(enhanced);
+      } catch {
+        updateLastAssistantMessage("⚠️ Error contacting Friday.");
       }
+    });
+
+    function addMessage(text, role) {
+      const div = document.createElement("div");
+      div.className = `message ${role}`;
+      div.innerHTML = role === "assistant" ? enhanceText(text) : text;
+      document.getElementById("chat-box").appendChild(div);
+      div.scrollIntoView({ behavior: "smooth" });
+    }
+
+    function updateLastAssistantMessage(newHTML) {
+      const messages = document.querySelectorAll(".message.assistant");
+      if (messages.length) {
+        messages[messages.length - 1].innerHTML = newHTML;
+      }
+    }
+
+    // Enhance assistant text (formatting)
+    function enhanceText(text) {
+      return text
+        .replace(/\*\*(.*?)\*\*/g, "<b>$1</b>")                       // bold
+        .replace(/### (.*?)\n/g, "<h3>$1</h3>")                       // h3 headings
+        .replace(/(\n)+/g, "<br><br>")                                // paragraph spacing
+        .replace(/^- (.*?)$/gm, "<li>$1</li>")                        // bullet points
+        .replace(/1\. (.*?)\n/g, "<p><b>1.</b> $1</p>")               // numbered list
+        .replace(/2\. (.*?)\n/g, "<p><b>2.</b> $1</p>")
+        .replace(/3\. (.*?)\n/g, "<p><b>3.</b> $1</p>")
+        .replace(/4\. (.*?)\n/g, "<p><b>4.</b> $1</p>")
+        .replace(/5\. (.*?)\n/g, "<p><b>5.</b> $1</p>")
+        .replace(/\n/g, "<br>");                                      // line breaks
     }
   </script>
 </body>

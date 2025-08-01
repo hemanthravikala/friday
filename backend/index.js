@@ -2,7 +2,6 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import fetch from 'node-fetch';
-import { OpenAI } from 'openai';
 
 dotenv.config();
 
@@ -12,10 +11,8 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-const openaiKeys = [process.env.OPENAI_API_KEY_1, process.env.OPENAI_API_KEY_2];
+const openrouterKeys = [process.env.OPENROUTER_API_KEY_1, process.env.OPENROUTER_API_KEY_2];
 let currentKeyIndex = 0;
-
-const openai = new OpenAI({ apiKey: openaiKeys[currentKeyIndex] });
 
 // DuckDuckGo fallback
 async function fetchFromDuckDuckGo(question) {
@@ -28,24 +25,39 @@ async function fetchFromDuckDuckGo(question) {
   }
 }
 
-// Handle AI question
-async function askOpenAI(question) {
-  for (let i = 0; i < openaiKeys.length; i++) {
-    const key = openaiKeys[i];
+// Ask OpenRouter API with Qwen model
+async function askOpenRouter(question) {
+  for (let i = 0; i < openrouterKeys.length; i++) {
+    const key = openrouterKeys[i];
     try {
-      const tempOpenAI = new OpenAI({ apiKey: key });
-      const chat = await tempOpenAI.chat.completions.create({
-        messages: [{ role: "user", content: question }],
-        model: "gpt-3.5-turbo",
+      const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${key}`,
+          "Content-Type": "application/json",
+          "HTTP-Referer": "https://hemanthravikala.github.io", // optional
+          "X-Title": "Friday-AI", // optional
+        },
+        body: JSON.stringify({
+          model: "qwen/qwen1.5-7b-chat",
+          messages: [
+            { role: "system", content: "You are Friday, a helpful assistant." },
+            { role: "user", content: question }
+          ]
+        })
       });
-      return chat.choices[0].message.content.trim();
+
+      if (!response.ok) throw new Error("OpenRouter error");
+      const data = await response.json();
+      return data.choices?.[0]?.message?.content.trim() || null;
     } catch (err) {
-      console.log(`❌ API key ${i + 1} failed. Trying next...`);
+      console.log(`❌ OpenRouter key ${i + 1} failed.`);
     }
   }
   return null;
 }
 
+// Route to handle user questions
 app.post('/ask', async (req, res) => {
   const { question } = req.body;
 
@@ -53,7 +65,7 @@ app.post('/ask', async (req, res) => {
     return res.status(400).json({ error: 'Invalid question format' });
   }
 
-  const aiResponse = await askOpenAI(question);
+  const aiResponse = await askOpenRouter(question);
   if (aiResponse) {
     return res.json({ response: aiResponse });
   }
@@ -62,10 +74,12 @@ app.post('/ask', async (req, res) => {
   return res.json({ response: duckAnswer });
 });
 
+// Default route
 app.get('/', (req, res) => {
-  res.send('✅ Friday backend is live');
+  res.send('✅ Friday backend using OpenRouter is live');
 });
 
+// Start server
 app.listen(PORT, () => {
   console.log(`✅ Server running on port ${PORT}`);
 });

@@ -11,71 +11,66 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-const openrouterKeys = [process.env.OPENROUTER_API_KEY_1, process.env.OPENROUTER_API_KEY_2];
+const openrouterKeys = [process.env.OPENROUTER_KEY_1, process.env.OPENROUTER_KEY_2];
+let currentKeyIndex = 0;
 
+// OpenRouter AI request
 async function askOpenRouter(question) {
-  for (let key of openrouterKeys) {
+  for (let i = 0; i < openrouterKeys.length; i++) {
     try {
-      const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
-        method: "POST",
+      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+        method: 'POST',
         headers: {
-          "Authorization": `Bearer ${key}`,
-          "Content-Type": "application/json",
-          "HTTP-Referer": "https://hemanthravikala.github.io/",
-          "X-Title": "FridayAI"
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${openrouterKeys[i]}`,
         },
         body: JSON.stringify({
-          model: "qwen/qwen1.5-14b-chat",
-          messages: [{ role: "user", content: question }]
-        })
+          model: 'qwen:1.5-chat',
+          messages: [{ role: 'user', content: question }],
+        }),
       });
 
-      const data = await res.json();
-      if (data.choices && data.choices.length > 0) {
+      const data = await response.json();
+      if (data?.choices?.[0]?.message?.content) {
         return data.choices[0].message.content.trim();
       }
     } catch (err) {
-      console.log(`❌ Key failed, trying next...`);
+      console.log(`❌ OpenRouter key ${i + 1} failed`);
     }
   }
   return null;
 }
 
-async function searchDuckDuckGo(question) {
+// DuckDuckGo fallback
+async function fetchFromDuckDuckGo(query) {
   try {
-    const res = await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(question)}&format=json`);
+    const res = await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json`);
     const data = await res.json();
-    return data.Abstract || data.RelatedTopics?.[0]?.Text || "No answer found on DuckDuckGo.";
+    return data.Abstract || data.RelatedTopics?.[0]?.Text || "No answer found.";
   } catch {
-    return "DuckDuckGo search failed.";
+    return "DuckDuckGo failed.";
   }
 }
 
-app.post("/ask", async (req, res) => {
+// 🔄 MAIN POST HANDLER
+app.post('/ask', async (req, res) => {
   const { question, mode } = req.body;
 
   if (!question || typeof question !== 'string') {
-    return res.status(400).json({ error: "Invalid question" });
+    return res.status(400).json({ error: 'Invalid question format' });
   }
 
-  if (mode === "web") {
-    const result = await searchDuckDuckGo(question);
+  if (mode === 'ai') {
+    const aiResponse = await askOpenRouter(question);
+    if (aiResponse) return res.json({ response: aiResponse });
+
+    // fallback to DuckDuckGo if AI fails
+    const fallback = await fetchFromDuckDuckGo(question);
+    return res.json({ response: fallback });
+  } else {
+    const result = await fetchFromDuckDuckGo(question);
     return res.json({ response: result });
   }
-
-  // Default or "ai" mode
-  const result = await askOpenRouter(question);
-  if (result) {
-    return res.json({ response: result });
-  }
-
-  // AI failed, fallback to DuckDuckGo
-  const fallback = await searchDuckDuckGo(question);
-  return res.json({ response: fallback });
-});
-
-app.get("/", (req, res) => {
-  res.send("✅ Friday backend running");
 });
 
 app.listen(PORT, () => {

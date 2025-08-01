@@ -58,56 +58,55 @@
   </div>
   <div id="response">🧠 Response will appear here...</div>
 
-  <script>
-    const backendURL = "https://friday-backend-p9dp.onrender.com";
+  <script>const aiBtn = document.getElementById("ai-btn");
+const webBtn = document.getElementById("web-btn");
+const userInput = document.getElementById("user-input");
+const chatBox = document.getElementById("chat-box");
 
-    async function askAI() {
-      const question = document.getElementById("question").value.trim();
-      if (!question) return alert("Please enter a question.");
+let mode = "ai"; // default mode
 
-      document.getElementById("response").innerText = "🧠 Thinking...";
+aiBtn.onclick = () => {
+  mode = "ai";
+  aiBtn.classList.add("active");
+  webBtn.classList.remove("active");
+};
 
-      try {
-        const res = await fetch(`${backendURL}/ask`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ question, mode: "ai" })
-        });
+webBtn.onclick = () => {
+  mode = "web";
+  webBtn.classList.add("active");
+  aiBtn.classList.remove("active");
+};
 
-        const data = await res.json();
-        if (res.ok) {
-          document.getElementById("response").innerText = `🤖 ${data.response}`;
-        } else {
-          throw new Error(data.error || "AI error.");
-        }
-      } catch (err) {
-        document.getElementById("response").innerText = `⚠️ Error: ${err.message}`;
-      }
-    }
+function addMessage(role, text) {
+  const msg = document.createElement("div");
+  msg.className = role;
+  msg.innerText = text;
+  chatBox.appendChild(msg);
+}
 
-    async function searchWeb() {
-      const question = document.getElementById("question").value.trim();
-      if (!question) return alert("Please enter a question.");
+document.getElementById("send-btn").addEventListener("click", async () => {
+  const question = userInput.value.trim();
+  if (!question) return;
 
-      document.getElementById("response").innerText = "🔍 Searching web...";
+  addMessage("user", question);
+  userInput.value = "";
 
-      try {
-        const res = await fetch(`${backendURL}/ask`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ question, mode: "web" })
-        });
+  addMessage("friday", "⏳ Thinking...");
 
-        const data = await res.json();
-        if (res.ok) {
-          document.getElementById("response").innerText = `🌐 ${data.response}`;
-        } else {
-          throw new Error(data.error || "Search error.");
-        }
-      } catch (err) {
-        document.getElementById("response").innerText = `⚠️ Error: ${err.message}`;
-      }
-    }
+  try {
+    const res = await fetch("https://friday-backend-p9dp.onrender.com/ask", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ question, mode }),
+    });
+
+    const data = await res.json();
+    chatBox.lastChild.innerText = "🤖 Friday: " + data.response;
+  } catch (err) {
+    chatBox.lastChild.innerText = "⚠️ Error: No response from Friday.";
+  }
+});
+
   </script>
 </body>
 </html>

@@ -1,9 +1,6 @@
-import express from 'express';
-import cors from 'cors';
-import dotenv from 'dotenv';
-import fetch from 'node-fetch';
-
-dotenv.config();
+const express = require("express");
+const cors = require("cors");
+const axios = require("axios");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -11,68 +8,59 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-const openrouterKeys = [process.env.OPENROUTER_KEY_1, process.env.OPENROUTER_KEY_2];
-let currentKeyIndex = 0;
+const API_KEYS = [
+  process.env.API_KEY_1,
+  process.env.API_KEY_2
+];
 
-// OpenRouter AI request
-async function askOpenRouter(question) {
-  for (let i = 0; i < openrouterKeys.length; i++) {
+const BASE_URL = "https://openrouter.ai/api/v1";
+
+async function getAIResponse(message) {
+  for (const key of API_KEYS) {
     try {
-      const response = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-        method: 'POST',
+      const res = await axios.post(`${BASE_URL}/chat/completions`, {
+        model: "qwen/qwen3-4b:free",
+        messages: [{ role: "user", content: message }],
+      }, {
         headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${openrouterKeys[i]}`,
-        },
-        body: JSON.stringify({
-          model: 'qwen:1.5-chat',
-          messages: [{ role: 'user', content: question }],
-        }),
+          Authorization: `Bearer ${key}`,
+          "Content-Type": "application/json",
+          "HTTP-Referer": "https://yourfrontend.site",
+          "X-Title": "AI Web",
+        }
       });
 
-      const data = await response.json();
-      if (data?.choices?.[0]?.message?.content) {
-        return data.choices[0].message.content.trim();
-      }
+      return { content: res.data.choices[0].message.content };
     } catch (err) {
-      console.log(`❌ OpenRouter key ${i + 1} failed`);
+      console.log("OpenRouter key failed, trying next...");
     }
   }
-  return null;
-}
 
-// DuckDuckGo fallback
-async function fetchFromDuckDuckGo(query) {
+  // If all API keys fail, fallback to DuckDuckGo
   try {
-    const res = await fetch(`https://api.duckduckgo.com/?q=${encodeURIComponent(query)}&format=json`);
-    const data = await res.json();
-    return data.Abstract || data.RelatedTopics?.[0]?.Text || "No answer found.";
-  } catch {
-    return "DuckDuckGo failed.";
+    const res = await axios.get("https://api.duckduckgo.com/", {
+      params: {
+        q: message,
+        format: "json"
+      }
+    });
+
+    return { content: res.data.AbstractText || "No direct answer found." };
+  } catch (err) {
+    return { content: "All API keys failed and DuckDuckGo also failed." };
   }
 }
 
-// 🔄 MAIN POST HANDLER
-app.post('/ask', async (req, res) => {
-  const { question, mode } = req.body;
+app.get("/", (req, res) => {
+  res.send("✅ Friday Backend is running!");
+});
 
-  if (!question || typeof question !== 'string') {
-    return res.status(400).json({ error: 'Invalid question format' });
-  }
-
-  if (mode === 'ai') {
-    const aiResponse = await askOpenRouter(question);
-    if (aiResponse) return res.json({ response: aiResponse });
-
-    // fallback to DuckDuckGo if AI fails
-    const fallback = await fetchFromDuckDuckGo(question);
-    return res.json({ response: fallback });
-  } else {
-    const result = await fetchFromDuckDuckGo(question);
-    return res.json({ response: result });
-  }
+app.post("/ask", async (req, res) => {
+  const userInput = req.body.message;
+  const aiReply = await getAIResponse(userInput);
+  res.json(aiReply);
 });
 
 app.listen(PORT, () => {
-  console.log(`✅ Server running on port ${PORT}`);
+  console.log(`Backend running at http://localhost:${PORT}`);
 });

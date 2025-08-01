@@ -1,69 +1,88 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Friday AI Assistant</title>
-  <style>
-    body {
-      font-family: sans-serif;
-      background: #0f172a;
-      color: white;
-      margin: 0;
-      padding: 20px;
-    }
-    h1 {
-      color: #38bdf8;
-    }
-    #response {
-      margin-top: 20px;
-      padding: 10px;
-      background: #1e293b;
-      border-radius: 5px;
-    }
-    input, button {
-      padding: 10px;
-      font-size: 16px;
-    }
-    button {
-      background: #38bdf8;
-      border: none;
-      color: #000;
-      cursor: pointer;
-    }
-    button:hover {
-      background: #0ea5e9;
-    }
-  </style>
-</head>
-<body>
-  <h1>Hi, I'm Friday! Ask me anything.</h1>
-  <input type="text" id="userInput" placeholder="Type your question here..." />
-  <button onclick="askFriday()">Ask</button>
-  <div id="response"></div>
-
-  <script>
-    async function askFriday() {
-      const input = document.getElementById("userInput").value;
-      const resDiv = document.getElementById("response");
-
-      resDiv.innerHTML = "⏳ Thinking...";
-
-      try {
-        const res = await fetch("https://friday-backend-p9dp.onrender.com/ask", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ message: input }),
-        });
-
-        const data = await res.json();
-        resDiv.innerHTML = data.content;
-      } catch (error) {
-        resDiv.innerHTML = "⚠️ Error contacting Friday.";
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Friday AI Assistant</title>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+      body {
+        font-family: sans-serif;
+        background: #0f172a;
+        color: white;
+        margin: 0;
+        padding: 20px;
       }
-    }
-  </script>
-</body>
+      h1 {
+        color: #38bdf8;
+      }
+      #response {
+        margin-top: 20px;
+        padding: 10px;
+        background: #1e293b;
+        border-radius: 5px;
+      }
+      /* Added styling for links and code blocks that might appear */
+      #response a {
+        color: #7dd3fc;
+      }
+      #response pre {
+        background-color: #020617;
+        padding: 1rem;
+        border-radius: 0.5rem;
+        overflow-x: auto;
+      }
+      input,
+      button {
+        padding: 10px;
+        font-size: 16px;
+      }
+      button {
+        background: #38bdf8;
+        border: none;
+        color: #000;
+        cursor: pointer;
+      }
+      button:hover {
+        background: #0ea5e9;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Hi, I'm Friday! Ask me anything.</h1>
+    <input type="text" id="userInput" placeholder="Type your question here..." />
+    <button onclick="askFriday()">Ask</button>
+    <div id="response"></div>
+
+    <script>
+      async function askFriday() {
+        const input = document.getElementById("userInput").value;
+        const resDiv = document.getElementById("response");
+
+        if (!input) {
+          resDiv.innerHTML = "Please enter a question.";
+          return;
+        }
+
+        resDiv.innerHTML = "⏳ Thinking...";
+
+        try {
+          const res = await fetch("https://friday-backend-p9dp.onrender.com/ask", {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({ message: input }),
+          });
+
+          const data = await res.json();
+          // UPDATE THIS LINE TO USE marked.parse()
+          resDiv.innerHTML = marked.parse(data.content);
+        } catch (error) {
+          resDiv.innerHTML = "⚠️ Error contacting Friday.";
+          console.error("Error:", error);
+        }
+      }
+    </script>
+  </body>
 </html>

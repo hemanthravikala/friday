@@ -2,111 +2,179 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Friday - AI Assistant</title>
+  <title>Friday Assistant</title>
   <style>
     body {
-      background: #0f172a;
-      color: white;
-      font-family: Arial, sans-serif;
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background: linear-gradient(to right, #2b5876, #4e4376);
+      color: #fff;
       display: flex;
       flex-direction: column;
-      align-items: center;
-      padding: 30px;
+      height: 100vh;
     }
-    h1 {
-      color: #38bdf8;
+
+    header {
+      background: rgba(0, 0, 0, 0.3);
+      padding: 1rem;
+      text-align: center;
+      font-size: 1.5rem;
+      font-weight: bold;
+      border-bottom: 1px solid #fff3;
     }
-    textarea {
-      width: 90%;
-      max-width: 600px;
-      height: 80px;
-      padding: 10px;
-      font-size: 16px;
+
+    .controls {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+      margin: 1rem;
+    }
+
+    .controls button {
+      padding: 0.5rem 1.5rem;
+      font-size: 1rem;
       border: none;
-      border-radius: 8px;
+      border-radius: 5px;
+      cursor: pointer;
+      background: #fff;
+      color: #333;
+      transition: 0.3s;
     }
-    button {
-      margin: 10px;
-      padding: 10px 20px;
-      font-size: 16px;
-      background: #1e40af;
+
+    .controls .active {
+      background: #ff9800;
+      color: white;
+    }
+
+    #chat-box {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1rem;
+      background: #1e1e2f;
+    }
+
+    .user, .friday {
+      padding: 0.7rem 1rem;
+      margin: 0.5rem 0;
+      border-radius: 10px;
+      max-width: 70%;
+      white-space: pre-wrap;
+    }
+
+    .user {
+      background-color: #4caf50;
+      align-self: flex-end;
+      margin-left: auto;
+    }
+
+    .friday {
+      background-color: #3f51b5;
+      align-self: flex-start;
+      margin-right: auto;
+    }
+
+    .input-area {
+      display: flex;
+      padding: 1rem;
+      background: rgba(0, 0, 0, 0.3);
+    }
+
+    #user-input {
+      flex: 1;
+      padding: 0.5rem;
+      font-size: 1rem;
+      border-radius: 5px;
+      border: none;
+    }
+
+    #send-btn {
+      padding: 0.5rem 1.2rem;
+      margin-left: 0.5rem;
+      font-size: 1rem;
+      background: #03a9f4;
       color: white;
       border: none;
-      border-radius: 6px;
+      border-radius: 5px;
       cursor: pointer;
     }
-    button:hover {
-      background: #2563eb;
-    }
-    #response {
-      margin-top: 20px;
-      width: 90%;
-      max-width: 600px;
-      background: #1e293b;
-      padding: 15px;
-      border-radius: 10px;
-      white-space: pre-wrap;
+
+    #send-btn:hover {
+      background: #0288d1;
     }
   </style>
 </head>
 <body>
-  <h1>Friday AI Assistant</h1>
-  <textarea id="question" placeholder="Ask your question..."></textarea>
-  <div>
-    <button onclick="askAI()">Ask AI</button>
-    <button onclick="searchWeb()">Search in Web</button>
+  <header>Friday - Your AI Assistant</header>
+
+  <div class="controls">
+    <button id="ai-btn" class="active">Ask AI</button>
+    <button id="web-btn">Search in Web</button>
   </div>
-  <div id="response">🧠 Response will appear here...</div>
 
-  <script>const aiBtn = document.getElementById("ai-btn");
-const webBtn = document.getElementById("web-btn");
-const userInput = document.getElementById("user-input");
-const chatBox = document.getElementById("chat-box");
+  <div id="chat-box"></div>
 
-let mode = "ai"; // default mode
+  <div class="input-area">
+    <input id="user-input" type="text" placeholder="Type your question..." />
+    <button id="send-btn">Send</button>
+  </div>
 
-aiBtn.onclick = () => {
-  mode = "ai";
-  aiBtn.classList.add("active");
-  webBtn.classList.remove("active");
-};
+  <script>
+    const aiBtn = document.getElementById("ai-btn");
+    const webBtn = document.getElementById("web-btn");
+    const userInput = document.getElementById("user-input");
+    const chatBox = document.getElementById("chat-box");
 
-webBtn.onclick = () => {
-  mode = "web";
-  webBtn.classList.add("active");
-  aiBtn.classList.remove("active");
-};
+    let mode = "ai"; // default
 
-function addMessage(role, text) {
-  const msg = document.createElement("div");
-  msg.className = role;
-  msg.innerText = text;
-  chatBox.appendChild(msg);
-}
+    aiBtn.onclick = () => {
+      mode = "ai";
+      aiBtn.classList.add("active");
+      webBtn.classList.remove("active");
+    };
 
-document.getElementById("send-btn").addEventListener("click", async () => {
-  const question = userInput.value.trim();
-  if (!question) return;
+    webBtn.onclick = () => {
+      mode = "web";
+      webBtn.classList.add("active");
+      aiBtn.classList.remove("active");
+    };
 
-  addMessage("user", question);
-  userInput.value = "";
+    function addMessage(role, text) {
+      const msg = document.createElement("div");
+      msg.className = role;
+      msg.innerText = text;
+      chatBox.appendChild(msg);
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
 
-  addMessage("friday", "⏳ Thinking...");
+    document.getElementById("send-btn").addEventListener("click", async () => {
+      const question = userInput.value.trim();
+      if (!question) return;
 
-  try {
-    const res = await fetch("https://friday-backend-p9dp.onrender.com/ask", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question, mode }),
+      addMessage("user", question);
+      userInput.value = "";
+
+      addMessage("friday", "⏳ Thinking...");
+
+      try {
+        const res = await fetch("https://friday-backend-p9dp.onrender.com/ask", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ question, mode }),
+        });
+
+        const data = await res.json();
+        chatBox.lastChild.innerText = "🤖 Friday: " + data.response;
+      } catch (err) {
+        chatBox.lastChild.innerText = "⚠️ Error: Friday didn't respond.";
+      }
     });
 
-    const data = await res.json();
-    chatBox.lastChild.innerText = "🤖 Friday: " + data.response;
-  } catch (err) {
-    chatBox.lastChild.innerText = "⚠️ Error: No response from Friday.";
-  }
-});
-
+    // Optional: enter key support
+    userInput.addEventListener("keypress", function (e) {
+      if (e.key === "Enter") {
+        document.getElementById("send-btn").click();
+      }
+    });
   </script>
 </body>
 </html>

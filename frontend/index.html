@@ -1,136 +1,112 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <meta charset="UTF-8">
   <title>Friday - AI Assistant</title>
-  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@3.4.1/dist/tailwind.min.css" rel="stylesheet">
   <style>
     body {
+      background: #0f172a;
+      color: white;
       font-family: Arial, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
       padding: 30px;
-      background: #f2f2f2;
     }
-    #chat {
+    h1 {
+      color: #38bdf8;
+    }
+    textarea {
+      width: 90%;
       max-width: 600px;
-      margin: auto;
-      background: #fff;
-      padding: 20px;
-      border-radius: 10px;
-      box-shadow: 0 0 10px #ccc;
+      height: 80px;
+      padding: 10px;
+      font-size: 16px;
+      border: none;
+      border-radius: 8px;
+    }
+    button {
+      margin: 10px;
+      padding: 10px 20px;
+      font-size: 16px;
+      background: #1e40af;
+      color: white;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+    }
+    button:hover {
+      background: #2563eb;
     }
     #response {
       margin-top: 20px;
+      width: 90%;
+      max-width: 600px;
+      background: #1e293b;
       padding: 15px;
-      background: #e0f7fa;
-      border-radius: 5px;
+      border-radius: 10px;
       white-space: pre-wrap;
-    }
-    input[type="text"] {
-      width: 80%;
-      padding: 10px;
-      font-size: 16px;
-    }
-    button {
-      padding: 10px 20px;
-      font-size: 16px;
-      margin-left: 10px;
-      font-family: 'Segoe UI', sans-serif;
-      background: linear-gradient(to bottom right, #0f172a, #1e293b);
     }
   </style>
 </head>
-<body class="flex flex-col items-center justify-center min-h-screen p-4 text-white">
-
-  <div class="w-full max-w-2xl bg-gray-900 p-6 rounded-xl shadow-lg">
-    <h1 class="text-3xl font-bold mb-4 text-center text-cyan-300">Friday Assistant</h1>
-
-    <div id="responseContainer" class="bg-gray-800 text-white p-4 rounded-md h-40 overflow-auto mb-4 text-lg">
-      Ask something to Friday...
-    </div>
-
-    <div class="flex space-x-2">
-      <input id="commandInput" 
-             type="text" 
-             placeholder="Type your question..." 
-             class="flex-1 px-4 py-2 rounded-md text-black text-lg focus:outline-none"
-             />
-      <button id="sendButton" 
-              class="bg-cyan-500 hover:bg-cyan-600 text-white px-4 py-2 rounded-md text-lg">Ask</button>
-      <button id="micIcon" 
-              class="bg-gray-700 hover:bg-gray-600 text-white px-4 py-2 rounded-md text-lg">🎤</button>
-    </div>
+<body>
+  <h1>Friday AI Assistant</h1>
+  <textarea id="question" placeholder="Ask your question..."></textarea>
+  <div>
+    <button onclick="askAI()">Ask AI</button>
+    <button onclick="searchWeb()">Search in Web</button>
   </div>
+  <div id="response">🧠 Response will appear here...</div>
 
   <script>
-    const input = document.getElementById("commandInput");
-    const responseContainer = document.getElementById("responseContainer");
-    const micIcon = document.getElementById("micIcon");
-    const sendButton = document.getElementById("sendButton");
+    const backendURL = "https://friday-backend-p9dp.onrender.com";
 
-    async function askFriday(question) {
-      if (!question.trim()) return;
+    async function askAI() {
+      const question = document.getElementById("question").value.trim();
+      if (!question) return alert("Please enter a question.");
 
-      displayResponse("🤖 Thinking...");
+      document.getElementById("response").innerText = "🧠 Thinking...";
 
       try {
-        const res = await fetch("https://friday-backend-p9dp.onrender.com/ask", {
+        const res = await fetch(`${backendURL}/ask`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ question })
+          body: JSON.stringify({ question, mode: "ai" })
         });
 
-        if (!res.ok) throw new Error("Bad Request");
+        const data = await res.json();
+        if (res.ok) {
+          document.getElementById("response").innerText = `🤖 ${data.response}`;
+        } else {
+          throw new Error(data.error || "AI error.");
+        }
+      } catch (err) {
+        document.getElementById("response").innerText = `⚠️ Error: ${err.message}`;
+      }
+    }
+
+    async function searchWeb() {
+      const question = document.getElementById("question").value.trim();
+      if (!question) return alert("Please enter a question.");
+
+      document.getElementById("response").innerText = "🔍 Searching web...";
+
+      try {
+        const res = await fetch(`${backendURL}/ask`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ question, mode: "web" })
+        });
 
         const data = await res.json();
-        displayResponse(data.response || "⚠️ No response from Friday.");
+        if (res.ok) {
+          document.getElementById("response").innerText = `🌐 ${data.response}`;
+        } else {
+          throw new Error(data.error || "Search error.");
+        }
       } catch (err) {
-        console.error("Error:", err);
-        displayResponse("⚠️ Error: No response from Friday.");
+        document.getElementById("response").innerText = `⚠️ Error: ${err.message}`;
       }
-    }
-
-    function displayResponse(message) {
-      responseContainer.innerHTML = `<div class="text-white">${message}</div>`;
-    }
-
-    input.addEventListener("keydown", function (e) {
-      if (e.key === "Enter") {
-        const question = input.value;
-        input.value = "";
-        askFriday(question);
-      }
-    });
-
-    sendButton.addEventListener("click", () => {
-      const question = input.value;
-      input.value = "";
-      askFriday(question);
-    });
-
-    // Voice input
-    if ("webkitSpeechRecognition" in window) {
-      const recognition = new webkitSpeechRecognition();
-      recognition.continuous = false;
-      recognition.interimResults = false;
-      recognition.lang = "en-IN";
-
-      micIcon.addEventListener("click", () => {
-        recognition.start();
-        micIcon.classList.add("animate-pulse");
-      });
-
-      recognition.onresult = function (event) {
-        const voiceInput = event.results[0][0].transcript;
-        input.value = voiceInput;
-        micIcon.classList.remove("animate-pulse");
-        askFriday(voiceInput);
-      };
-
-      recognition.onerror = function (event) {
-        micIcon.classList.remove("animate-pulse");
-        console.error("Voice error:", event.error);
-      };
     }
   </script>
 </body>

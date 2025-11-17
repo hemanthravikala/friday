@@ -8,27 +8,52 @@ const PORT = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
-// Your API keys from Render Environment Variables
-const API_KEYS = [
-  process.env.API_KEY_1,
-  process.env.API_KEY_2
+// --- CHANGE 1: Create a list of API Key/Model configurations ---
+// The code will try these in order, one by one.
+const API_CONFIGS = [
+  {
+    key: process.env.API_KEY_1,
+    model: "mistralai/mistral-7b-instruct:free"
+  },
+  {
+    key: process.env.API_KEY_2,
+    model: "mistralai/mistral-7b-instruct:free"
+  },
+  {
+    key: process.env.API_KEY_3,
+    model: "deepseek/deepseek-chat:free" // Your Deepseek model
+  },
+  {
+    key: process.env.API_KEY_4,
+    model: "qwen/qwen3-4b:free" // Your Qwen model
+  }
 ];
 
 const BASE_URL = "https://openrouter.ai/api/v1";
 
 async function getAIResponse(message) {
-  for (const key of API_KEYS) {
+  // --- CHANGE 2: Loop through the new API_CONFIGS array ---
+  for (const config of API_CONFIGS) {
+    const { key, model } = config;
+
+    // If a key is missing from Render's environment, skip it
+    if (!key) {
+      console.log(`Skipping model ${model}: API key not set.`);
+      continue;
+    }
+
     try {
+      // Log which model is being attempted
+      console.log(`Attempting call with model: ${model}`);
+
       const res = await axios.post(`${BASE_URL}/chat/completions`, {
-        model: "qwen/qwen3-4b:free",
+        model: model, // Use the model from the config
         messages: [{ role: "user", content: message }],
       }, {
         headers: {
-          Authorization: `Bearer ${key}`,
+          Authorization: `Bearer ${key}`, // Use the key from the config
           "Content-Type": "application/json",
-          // --- CHANGE 1: Set to your live frontend URL ---
           "HTTP-Referer": "https://hemanthravikala.github.io",
-          // --- CHANGE 2: Set to your app name ---
           "X-Title": "Friday AI Assistant"
         }
       });
@@ -37,26 +62,23 @@ async function getAIResponse(message) {
       return { content: res.data.choices[0].message.content };
 
     } catch (err) {
-      console.log("OpenRouter key failed, trying next...");
+      // Log which model failed, then try the next one
+      console.log(`Failed to use model: ${model}. Trying next...`);
       
-      // --- CHANGE 3: Added detailed error logging ---
-      // This will show the *real* error in your Render logs
       if (err.response) {
-        // The request failed with a response from OpenRouter
         console.error("Error Status:", err.response.status);
         console.error("Error Data:", JSON.stringify(err.response.data, null, 2));
       } else {
-        // The request failed for other reasons (e.g., network issue)
         console.error("Full Error:", err.message);
       }
     }
   }
 
-  // This message is sent to the user if all API keys fail
-  return { content: "All AI API keys failed. Please try again later." };
+  // This message is sent to the user if all API keys/models fail
+  return { content: "All AI API keys and models failed. Please try again later." };
 }
 
-// --- Your existing server code (all correct) ---
+// --- Your existing server code (no changes needed) ---
 
 app.get("/", (req, res) => {
   res.send("✅ Friday Backend is running!");

@@ -23,11 +23,11 @@ async function getAIResponse(message) {
         messages: [{ role: "user", content: message }],
       }, {
         headers: {
-          Authorization: `Bearer ${key}`,
-          "Content-Type": "application/json",
-          "HTTP-Referer": "https://yourfrontend.site", // Your site-name
-          "X-Title": "AI Web", // Your app-name
-        }
+  Authorization: `Bearer ${key}`,
+  "Content-Type": "application/json",
+  "HTTP-Referer": "https://hemanthravikala.github.io", // <-- YOUR GITHUB.IO URL
+  "X-Title": "Friday AI Assistant", // <-- YOUR APP NAME
+}
       });
 
       // Successful response from OpenRouter
@@ -55,3 +55,4 @@ app.post("/ask", async (req, res) => {
 app.listen(PORT, () => {
   console.log(`Backend running at http://localhost:${PORT}`);
 });
+

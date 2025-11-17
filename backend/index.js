@@ -25,30 +25,21 @@ async function getAIResponse(message) {
         headers: {
           Authorization: `Bearer ${key}`,
           "Content-Type": "application/json",
-          "HTTP-Referer": "https://yourfrontend.site",
-          "X-Title": "AI Web",
+          "HTTP-Referer": "https://yourfrontend.site", // Your site-name
+          "X-Title": "AI Web", // Your app-name
         }
       });
 
+      // Successful response from OpenRouter
       return { content: res.data.choices[0].message.content };
     } catch (err) {
       console.log("OpenRouter key failed, trying next...");
     }
   }
 
-  // If all API keys fail, fallback to DuckDuckGo
-  try {
-    const res = await axios.get("https://api.duckduckgo.com/", {
-      params: {
-        q: message,
-        format: "json"
-      }
-    });
-
-    return { content: res.data.AbstractText || "No direct answer found." };
-  } catch (err) {
-    return { content: "All API keys failed and DuckDuckGo also failed." };
-  }
+  // If all API keys fail, return an error message.
+  // The DuckDuckGo fallback has been removed.
+  return { content: "All AI API keys failed. Please try again later." };
 }
 
 app.get("/", (req, res) => {
